@@ -1,4 +1,4 @@
-####### Label phylohgenetic trees #########
+####### Label phylogenetic trees #########
 ###########################################
 
 # Author: Letícia Magpali
@@ -45,13 +45,14 @@ if __name__ == "__main__":
 
     # Adding optional arguments  
     parser.add_argument("--label", type=str, default="", help="Label to be added to the foreground branches (default: '')")
-    parser.add_argument("--foreground", type=str, default="", help="Comma-separated list of foreground branches or clades to label in the tree (e.g., 'leaf1,leaf2,clade_limit_1:clade_limit_2')(default: '')")
-
+    parser.add_argument("--leaves", type=str, default="", help="Comma-separated list of leaves to label in the tree(default: '')")
+    parser.add_argument("--clades", type=str, default="", help="Comma-separated list of clades to label in the tree(default: '')")
     # Making a variable to store the arguments
     args = parser.parse_args()
 
 
-FOREGROUND = args.foreground  
+LEAVES = args.foreground  
+CLADES = args.clades
 LABEL = args.label  
 HYPOTHESIS = args.hypothesis  
 TREE_TYPE = args.tree_type  
@@ -60,7 +61,8 @@ OUTPUT_FOLDER = args.output_folder
 
 # Takes user input, a string of with the names of foreground branches
 # separated by spaces, and turns it into a list
-foreground_nodes = FOREGROUND.split(",")
+foreground_leaves = LEAVES.split(",")
+foreground_clades = CLADES.split(" ")
 
 # This loop goes through each tree in your trees folder,
 # parses the tree and checks only for the leafs
@@ -72,22 +74,31 @@ for file in os.listdir(TREES_FOLDER):
         tree_path = os.path.join(TREES_FOLDER, file)
         tree = EvolTree2(tree_path)
 
-        if LABEL and FOREGROUND:
-            # If a label or foreground is specified, mark the foreground nodes
-            for element in foreground_nodes:
-                if ":" not in element and element != "":
-                    # this is a leaf
-                    leaf = tree.get_descendants_by_name(element)
-                    if leaf is not None:
-                        tree.mark_tree([leaf.node_id], marks=[f"#{LABEL}"])
-                elif ":" in element:
-                    # this is a clade
-                    clade_limits = element.split(":")
-                    lim_left = tree.get_descendants_by_name(clade_limits[0])
-                    lim_right = tree.get_descendants_by_name(clade_limits[1])
-                    if lim_left is not None and lim_right is not None:
-                        common = lim_left.get_common_ancestor(lim_right)
-                        tree.mark_tree([common.node_id], marks=[f"${LABEL}"])
+        if LABEL and LEAVES:
+            # If a label and foreground is specified, mark the foreground nodes
+            for leaf in foreground_leaves:
+                leaf_to_label = tree.get_leaves_by_name(leaf)
+                if leaf_to_label is not None:
+                    tree.mark_tree([leaf_to_label.node_id], marks=[f"#{LABEL}"])
+                
+        if CLADES:
+            for clade in foreground_clades:
+                clade_species = clade.split(",") # Now a list of species names
+                monophyly = tree.check_monophyly(clade_species, target_attr="name") 
+                if monophyly: 
+                    # If the clade is monophyletic, label the common ancestor
+                    clade_to_label = tree.get_common_ancestor(clade_species)
+                    tree.mark_tree([clade_to_label.node_id], marks=[f"${LABEL}"])
+                if not monophyly:
+                    subclades = tree.get_monophyletic(clade_species, target_attr="name")
+                    for node in subclades:
+                        if node.is_leaf():
+                        # Species out of clade, label leaf
+                            tree.mark_tree([node.node_id], marks=[f"#{LABEL}"])
+                        else:
+                        # Subclade, label common ancestor
+                            tree.mark_tree([node.node_id], marks=[f"${LABEL}"])
+                
 
         # Always write the tree, labeled or not
         tree.write(outfile=f"{OUTPUT_FOLDER}/{gene_name}_{TREE_TYPE}_{HYPOTHESIS}.tre", format=13)
