@@ -29,12 +29,6 @@ class EvolTree2(EvolTree):
         else:
             return nwk
 
-    def get_descendants_by_name(self, name: str):
-        for node in self.traverse():
-            if node.name == name:
-                return node
-        return None
-
 if __name__ == "__main__":
     # Adding main arguments
     parser = argparse.ArgumentParser(description="Formats gene trees to codeml and labels foreground branches. Requires a run folder, a paths file with paths to alignments and trees, an analysis name, a hypothesis number, and a control file template.")
@@ -46,12 +40,12 @@ if __name__ == "__main__":
     # Adding optional arguments  
     parser.add_argument("--label", type=str, default="", help="Label to be added to the foreground branches (default: '')")
     parser.add_argument("--leaves", type=str, default="", help="Comma-separated list of leaves to label in the tree(default: '')")
-    parser.add_argument("--clades", type=str, default="", help="Comma-separated list of clades to label in the tree(default: '')")
+    parser.add_argument("--clades", type=str, default="", help="Space-separated list of clades to label in the tree(default: '')")
     # Making a variable to store the arguments
     args = parser.parse_args()
 
 
-LEAVES = args.foreground  
+LEAVES = args.leaves
 CLADES = args.clades
 LABEL = args.label  
 HYPOTHESIS = args.hypothesis  
@@ -61,8 +55,8 @@ OUTPUT_FOLDER = args.output_folder
 
 # Takes user input, a string of with the names of foreground branches
 # separated by spaces, and turns it into a list
-foreground_leaves = LEAVES.split(",")
-foreground_clades = CLADES.split(" ")
+foreground_leaves = [leaf.strip() for leaf in LEAVES.split(",") if leaf.strip()]
+foreground_clades = [clade.strip() for clade in CLADES.split(" ") if clade.strip()]
 
 # This loop goes through each tree in your trees folder,
 # parses the tree and checks only for the leafs
@@ -78,18 +72,18 @@ for file in os.listdir(TREES_FOLDER):
             # If a label and foreground is specified, mark the foreground nodes
             for leaf in foreground_leaves:
                 leaf_to_label = tree.get_leaves_by_name(leaf)
-                if leaf_to_label is not None:
-                    tree.mark_tree([leaf_to_label.node_id], marks=[f"#{LABEL}"])
+                if leaf_to_label:
+                    tree.mark_tree([leaf_to_label[0].node_id], marks=[f"#{LABEL}"])
                 
         if CLADES:
             for clade in foreground_clades:
                 clade_species = clade.split(",") # Now a list of species names
-                monophyly = tree.check_monophyly(clade_species, target_attr="name") 
-                if monophyly: 
+                monophyletic = tree.check_monophyly(clade_species, target_attr="name")[0] 
+                if monophyletic:
                     # If the clade is monophyletic, label the common ancestor
                     clade_to_label = tree.get_common_ancestor(clade_species)
                     tree.mark_tree([clade_to_label.node_id], marks=[f"${LABEL}"])
-                if not monophyly:
+                if not monophyletic:
                     subclades = tree.get_monophyletic(clade_species, target_attr="name")
                     for node in subclades:
                         if node.is_leaf():
