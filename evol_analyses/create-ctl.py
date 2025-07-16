@@ -2,7 +2,7 @@
 # Generates control file for codeml
 ###################################
 
-# Author: Letícia Magpali
+# Authors: Letícia Magpali & Rafael Copstein
 
 '''This script generates a control file for codeml by editing a 
 file template and making multiple copies of it for each gene.

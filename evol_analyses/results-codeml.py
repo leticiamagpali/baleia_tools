@@ -1,3 +1,8 @@
+######### Extract results from codeml runs #########
+####################################################
+
+# Author: Letícia Magpali
+
 # Loop through run folder for that model
 # For each folder, go through files 
 # if file has "out" in name, read file

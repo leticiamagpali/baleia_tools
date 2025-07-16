@@ -1,7 +1,7 @@
-####### Run codeml #########
-############################
+####### Run codeml in parallel #########
+########################################
 
-# Author: Letícia Magpali
+# Authors: Letícia Magpali & Rafael Copstein
 
 '''This script runs the program codeml for multiple control files,
 each one inside its own folder'''
