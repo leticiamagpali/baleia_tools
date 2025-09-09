@@ -58,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=str, default="", help="Path to the output folder where labeled trees will be saved")
     parser.add_argument("--h", type=str, default="", help="Hypothesis number or code to be written in the output file name (e.g., 'H0', 'H1', 'H2'). If no hypothesis is specified, field will be left blank")
     parser.add_argument("--t", type=str, default="tree", help="Type of tree, e.g., 'genetree', 'speciestree'. If no type is specified, 'tree' will be used")
-    parser.add_argument("--tag", type=str, default="", help="Label to be added to the foreground branches (default: '')")
+    parser.add_argument("--l", type=str, default="", help="Label to be added to the foreground branches (default: '')")
     parser.add_argument("--leaves", type=str, default="", help="Comma-separated list of leaves to label in the tree (default: ''), example: species1,species2,species3")
     parser.add_argument("--ancestor", type=str, default="", help="Space-separated list of clades whose common ancestors will be labeled in the tree (default: ''), example: species1,species2 species3,species4 (species1 and species2 are a clade, species3 and species4 are another clade)")
     parser.add_argument("--clades", type=str, default="", help="Space-separated list of clades to label in the tree (default: ''), example: species1,species2 species3,species4 (species1 and species2 are a clade, species3 and species4 are another clade)")
@@ -70,11 +70,11 @@ if __name__ == "__main__":
 LEAVES = args.leaves
 CLADES = args.clades
 ANCESTOR = args.ancestor
-LABEL = args.label
-HYPOTHESIS = args.hypothesis
-TREE_TYPE = args.tree_type  
-TREES_FOLDER = args.input_folder  
-OUTPUT_FOLDER = args.output_folder
+LABEL = args.l
+HYPOTHESIS = args.h
+TREE_TYPE = args.t
+TREES_FOLDER = args.input
+OUTPUT_FOLDER = args.out
 
 # If no output folder is specified, create one inside the input folder
 if OUTPUT_FOLDER is None:
@@ -147,14 +147,14 @@ for file in os.listdir(TREES_FOLDER):
                             outsiders = [species for species in clade_species if species not in most_inclusive[0]]
                             for leaf in outsiders:
                                 outsider_to_label = tree.get_leaves_by_name(leaf)
-                                if outsider_to_label and outsider_to_label[0].node_id in present_node_ids:
+                                if outsider_to_label:
                                     tree.mark_tree([outsider_to_label[0].node_id], marks=[f"#{LABEL}"])
 
                         if not list_of_subclades:
                             # If no subclades were found, label the entire clade
                             for leaf in clade_species:
                                 leaf_to_label = tree.get_leaves_by_name(leaf)
-                                if leaf_to_label and leaf_to_label[0].node_id in present_node_ids:
+                                if leaf_to_label:
                                     tree.mark_tree([leaf_to_label[0].node_id], marks=[f"#{LABEL}"])
 
         if LABEL and ANCESTOR:

@@ -63,12 +63,20 @@ TREES_FOLDER = Path(TREES_FOLDER)
 print(f"run folder: {RUN_FOLDER}")
 print(f"alignments folder: {ALIGNMENTS_FOLDER}")
 print(f"treees folder: {TREES_FOLDER}")
-print(f"model = {args.model}")
-print(f"NSsites = {args.NSsites}")
-print(f"CodonFreq = {args.CodonFreq}")
-print(f"omega = {args.omega}")
-print(f"fix_omega = {args.fix_omega}")
-print(f"ncatG = {args.ncatg}")
+
+# Summarized way to print codeml options and their defaults
+defaults = {
+    "model": "0",
+    "NSsites": "0",
+    "CodonFreq": "7",
+    "omega": "0.5",
+    "fix_omega": "0",
+    "ncatg": "None",
+}
+
+for opt, default in defaults.items():
+    val = getattr(args, opt, None)
+    print(f"{opt} = {val if val is not None else default} {'(default)' if val is None else ''}")
 
 # Creates a dictionary of the codeml template file
 codeml_dictionary = {}
