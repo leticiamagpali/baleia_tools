@@ -9,17 +9,19 @@ Authors: Letícia Magpali, Rafael Copstein, Yuri Kulish
 import os
 from typing import List, Tuple
 from Bio import SeqIO
-from get_sequences import extract_seqs
-from get_sequences import process_isoforms
+from getseq import extract_seqs
+from getseq import process_isoforms
 
 # Modify this variable to point to the root directory where you will run the analyses
 # or leave as it is and the analysis will run on your working directory
 # (i.e. the same directory where this file is)
-WORKING_DIR = "/Users/leticiamagpali/Google Drive/My Drive/phd_leticia/research_project/scripts/sandbox/get-seqs-test-1"
+#WORKING_DIR = "/Users/leticiamagpali/Google Drive/My Drive/phd_leticia/research_project/scripts/sandbox/get-seqs-test-1"
+WORKING_DIR = "/home/chordata/Sync/MSc/"
 # os.path.dirname(os.path.realpath(__file__))
 
 # Modify this path to point to the folder containing the genomic data you wish to analyse
-GENOMICS_DIR = f"{WORKING_DIR}/test-sequences"
+#GENOMICS_DIR = f"{WORKING_DIR}/test-sequences"
+GENOMICS_DIR = f"{WORKING_DIR}/genomes"
 
 # Modify the paths below to point to your results folders
 # you can also leave it as it is and they will be created for you inside the working directory
@@ -50,8 +52,8 @@ RESULTS_MULTISPECIES_PROT = f"{WORKING_DIR}/results/proteins-multispecies"
 os.makedirs(RESULTS_MULTISPECIES_PROT, exist_ok=True)
 
 # modify this path to point to file containing the list of genes you want to extract
+#LIST_PATH = f"{WORKING_DIR}/gene_lists/female_gamete.uniq"
 LIST_PATH = f"{WORKING_DIR}/cognition_genes_test.txt"
-
 
 ##########################
 # Process nucleotide file
@@ -172,7 +174,6 @@ def edit_sequence_names():
 def make_multispecies_gene_file():
     '''Runs the extract_seqs.multispecies_gene() function on the results from the step above
     (edit sequence names)'''
-
     for filename in os.listdir(RESULTS_NAME_CHANGED_GENES):
         if filename.startswith("."):
             continue
@@ -261,11 +262,11 @@ def make_multispecies_prot_file():
 # Main Program Execution
 ########################
 
-# list_path, raw_data_file = process_nucleotide_file()
-# extract_longest_isoform(raw_data_file)
-# extract_genes_of_interest(list_path)
-# remove_low_quality_sequences()
-# edit_sequence_names()
+list_path, raw_data_file = process_nucleotide_file()
+extract_longest_isoform(raw_data_file)
+extract_genes_of_interest(list_path)
+remove_low_quality_sequences()
+edit_sequence_names()
 make_multispecies_gene_file()
 # raw_data_file = process_protein_file()
 # extract_proteins_of_interest(raw_data_file)

@@ -9,7 +9,7 @@ To utilize these tools, access through run_get_seqs.py
 '''
 from typing import List
 from Bio import SeqIO
-from file_editing import TextToList
+from filedit import TextToList
 
 
 ###############################
@@ -20,11 +20,14 @@ def extract_genes(file, genes_list):
     '''Insert function description'''
 
     genes_list = TextToList.create_list(genes_list)
-
+    
+    # Transforms string elements in genes_list to lowercase
+    # this facilitates removal of case-sensitivity for comparison
+    # against gene names in the record
+    genes_list = [gene.lower() for gene in genes_list]
     # Transforms genes_list into a set (data structure that
     # is optimized to check whether an element is whithin it or not)
     genes_set = set(genes_list)
-
     # creates empty list to store the sequence records of the extracted genes
     extracted_genes = []
 
@@ -35,9 +38,10 @@ def extract_genes(file, genes_list):
         # edits [gene=GENE_NAME] to display only GENE_NAME
         # if GENE_NAME matches the gene names on a list (user-provided):
         # appends sequence record to the extracted_genes list
-        # OBS: the result of seq_record.description.split()[1] is a string
-        if record.description.split()[1].lstrip("[gene=").rstrip("]") in genes_set:
+        # OBS: the result of seq_record.description.split()[1].lower() is a lowercase string
+        if record.description.split()[1].lstrip("[gene=").rstrip("]").lower() in genes_set:
             extracted_genes.append(record)
+
     return (extracted_genes)
 
 
@@ -79,9 +83,10 @@ def multispecies_gene(seq_file, genes_list, output_folder):
     and turns into one file for each gene for multiple species'''
 
     genes = TextToList.create_list(genes_list)
-
+    # Must be lower case to facilitate case-insensitive comparison
+    genes = [gene.lower() for gene in genes]
     for record in SeqIO.parse(seq_file, "fasta"):
-        gene_name = record.description.split("_")[0]
+        gene_name = record.description.split("_")[0].lower()
         if gene_name in genes:
             with open(f"{output_folder}/{gene_name}_nuc.fasta", 'a+', encoding="utf-8") as gene_file:
                 SeqIO.write(record, gene_file, "fasta")
