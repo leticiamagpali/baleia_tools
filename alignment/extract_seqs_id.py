@@ -8,7 +8,7 @@ import os
 from Bio import SeqIO, AlignIO
 from Bio.Align import MultipleSeqAlignment
 import argparse
-from file_editing import TextToList
+from filedit import TextToList
 
 def is_alignment(file_path, format="fasta"):
     '''This function checks if a file is an alignment.'''

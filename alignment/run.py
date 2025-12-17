@@ -3,14 +3,14 @@
 #########################
 
 import os
-from . import extract_seqs_id
+import extract_seqs_id
 from Bio import SeqIO
 from Bio import AlignIO
 
 # Run folders for alignment extraction
-RUN_FOLDER = "/Users/leticiamagpali/Google Drive/My Drive/PhD_Letícia/research_project/chapter2_genes/alignments/big_dataset/temp"
-RESULTS_FOLDER = "/Users/leticiamagpali/Google Drive/My Drive/PhD_Letícia/research_project/chapter2_genes/alignments/small_dataset"
-LIST_PATH = "/Users/leticiamagpali/Google Drive/My Drive/PhD_Letícia/research_project/chapter2_genes/alignments/small_dataset/small-dataset2.list"
+RUN_FOLDER = "/home/chordata/Desktop/Bielawski_Lab/MSc/results/maleXfemale/genes-multispecies"
+RESULTS_FOLDER = "/home/chordata/Desktop/Bielawski_Lab/MSc/results/maleXfemale/alignments"
+LIST_PATH = "/home/chordata/Desktop/Bielawski_Lab/MSc/results/maleXfemale/alignments/maleXfemale.list"
 
 
 ######################################
