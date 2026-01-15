@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("--alt", help="Path to the first run folder (alternative model).")
     parser.add_argument("--null", help="Path to the second run folder (null model).")
     parser.add_argument("--out", help="Path to the output CSV file.")
-    parser.add_argument("--m", help="Type of model being analyzed (e.g., 'branch-site').")
+    parser.add_argument("--m", help="Type of model being analyzed (branch, site or branchsite).")
     args = parser.parse_args()
 
     # Define the path to the master folder
@@ -74,7 +74,7 @@ if __name__ == "__main__":
                             "np": int(np_value)
                         }
 
-                    if MODEL_TYPE == "branch-site" or MODEL_TYPE == "site":
+                    if MODEL_TYPE == "branchsite" or MODEL_TYPE == "site":
                         with open(outfile_path, "r") as outfile:
                             positive_sites = []
                             for line in outfile:
@@ -113,7 +113,9 @@ if __name__ == "__main__":
 
     # Merge results for calculations and write to CSV
     with open(OUTPUT_FILE, mode='w', newline='') as csvfile:
-        fieldnames = ["Gene", "Model", "lnL", "LRT", "np", "df", "p-value", "PSS"]
+        fieldnames = ["Gene", "Model", "lnL", "LRT", "np", "df", "p-value"]
+        if MODEL_TYPE in ["branchsite", "site"]:
+            fieldnames.append("PSS")
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
@@ -130,8 +132,8 @@ if __name__ == "__main__":
                 # Calculate the p-value using the Chi-squared distribution
                 p_value = chi2.sf(lrt, df)
 
-                # Write data for RUN_FOLDER_1 with calculated LRT and df
-                writer.writerow({
+                # Build row for RUN_FOLDER_1, conditionally including PSS
+                row1 = {
                     "Gene": data1["Gene"],
                     "Model": data1["Model"],
                     "lnL": data1["lnL"],
@@ -139,17 +141,19 @@ if __name__ == "__main__":
                     "np": data1["np"],
                     "df": df,
                     "p-value": p_value,
-                    "PSS": " ".join(data1["Positive_Sites"]) if data1["Positive_Sites"] else "NA"
-                })
+                }
+                if "Positive_Sites" in data1:
+                    row1["PSS"] = " ".join(data1["Positive_Sites"])
+                writer.writerow(row1)
 
-                # Write data for RUN_FOLDER_2 with calculated LRT and df
-                writer.writerow({
+                # Build row for RUN_FOLDER_2, with PSS set to "NA" (since null model typically has no positive sites)
+                row2 = {
                     "Gene": data2["Gene"],
                     "Model": data2["Model"],
                     "lnL": data2["lnL"],
-                    "LRT": "NA", # Indicating no LRT calculation for this row
+                    "LRT": "NA",  # Indicating no LRT calculation for this row
                     "np": data2["np"],
-                    "df": "NA", # Indicating no df calculation for this row
-                    "p-value": "NA", # Indicating no p_value calculation for this row
-                    "PSS": data2["NA"] # Indicating no positive sites for null model
-                })
+                    "df": "NA",  # Indicating no df calculation for this row
+                    "p-value": "NA",  # Indicating no p_value calculation for this row
+                }
+                writer.writerow(row2)

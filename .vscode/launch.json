@@ -12,13 +12,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "HT1",
-                "genetree",
-                "/Users/letixa/Desktop/tree_test",
-                "/Users/letixa/Desktop/tree_test/output",
-                "--label", "1",
-                "--leaves", "Pcat,Igeo,Pbla,Lisa",
-                "--clades", "Kbre,Ksim Laus,Obre,Ohei Ppho,Psin,Pspi,Sflu,Bmus"
+                "--alt", "/Users/letixa/Google Drive/My Drive/phd_leticia/phd_project/chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs1/genetree/leaf/H2_shallow/Amodel_H2/",
+                "--null", "/Users/letixa/Google Drive/My Drive/phd_leticia/phd_project/chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs1/genetree/leaf/H2_shallow/Amodel_null_H2/",
+                "--out", "--out Amodel_H2_d30_geneleaf_cml1.csv",
+                "--m", "branchsite"
             ]
         }
     ]
