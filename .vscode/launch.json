@@ -1,22 +1,19 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
-            "name": "Python Debugger: Current File",
+            "name": "Python: Debug results-codeml",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--alt", "/Users/letixa/Google Drive/My Drive/phd_leticia/phd_project/chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs1/genetree/leaf/H2_shallow/Amodel_H2/",
-                "--null", "/Users/letixa/Google Drive/My Drive/phd_leticia/phd_project/chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs1/genetree/leaf/H2_shallow/Amodel_null_H2/",
-                "--out", "--out Amodel_H2_d30_geneleaf_cml1.csv",
+                "--alt", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/leaf/H2_shallow/Amodel_H2/",
+                "--null", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/leaf/H2_shallow/Amodel_null_H2/",
+                "--out", "test_output.csv",
                 "--m", "branchsite"
-            ]
+            ],
+            "justMyCode": true
         }
     ]
 }
