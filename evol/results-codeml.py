@@ -127,7 +127,7 @@ def get_codeml_results(run_folder, model_type):
                     outfile_path = entry.path
                     break
         if outfile_path is None:
-            raise FileNotFoundError(f"No codeml output file found in folder: {path}")
+            raise FileNotFoundError(f'No codeml output file found in folder: {path}')
         
         
     # 2) Extracting parameters, branch models ######
@@ -176,12 +176,11 @@ def get_codeml_results(run_folder, model_type):
             # Raise errors if any value is missing
             else:
                 if lnl_value is None:
-                    raise ValueError(f"Could not find lnL value for gene: {gene_name}")
+                    raise ValueError(f'Could not find lnL value for gene {gene_name}')
                 if np_value is None:
-                    raise ValueError(f"Could not find np value for gene: {gene_name}")
-                
+                    raise ValueError(f'Could not find np value for gene {gene_name}') 
                 if not (omega_alt or omega_null):
-                    raise ValueError(f"No omega values found for gene: {gene_name}")  
+                    raise ValueError(f'No omega values found for gene {gene_name}')  
 
     
     # 3) Extracting parameters, branch-site models #####
@@ -215,10 +214,7 @@ def get_codeml_results(run_folder, model_type):
                             positive_sites.extend(extract_positive_sites(beb_line))              
 
             if lnl_value is None or np_value is None:
-                raise ValueError(f"Could not find lnL or np values for gene: {gene_name}")
-            
-            if not table_data:
-                raise ValueError(f"Could not find site class table for gene: {gene_name}")
+                raise ValueError(f'Could not find lnL or np values for gene {gene_name}')
                 
             
             # Extract omega values and proportion from site class table
@@ -244,13 +240,20 @@ def get_codeml_results(run_folder, model_type):
                                         "2b": {"proportion": prop2b, "background_w": bg_w2b, "foreground_w": fg_w2b}
                                         }
                 }
-
-    print(f"Extracted results from {run_folder}:")
+            else:
+                if lnl_value and np_value:
+                    folder_results[gene_name] = {
+                    "gene": gene_name,
+                    "model": model_name,
+                    "lnl": float(lnl_value),
+                    "np": int(np_value)
+                }
+    print(f'Extracted results from {run_folder}:')
 
     # Print all lnL and np values
-    for gene_name, data in folder_results.items():
+    for gene_name, data in sorted(folder_results.items()):
         pss = " ".join(data["pss"]) if "pss" in data else ""
-        pss_str = f", PSS: {pss}" if pss else ""
+        pss_str = f', PSS: {pss}' if pss else ""
         print(f'{gene_name}, lnl: {data["lnl"]}, np: {data["np"]}{pss_str}')
 
     return folder_results
@@ -271,7 +274,7 @@ def write_codeml_results(results_alt, results_null, output_file, model_type):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
-        for key in results_alt.keys():
+        for key in sorted(results_alt.keys(), key=str.lower):
             if key in results_null:
                 # Get corresponding results from both folders
                 data_alt = results_alt[key]
