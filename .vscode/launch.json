@@ -8,10 +8,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--alt", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/leaf/H2_shallow/Amodel_H2/",
-                "--null", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/leaf/H2_shallow/Amodel_null_H2/",
+                "--alt", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/leaf/H3_nbhf/branch_H3",
+                "--null", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/M0",
                 "--out", "test_output.csv",
-                "--m", "branchsite"
+                "--m", "branch"
             ],
             "justMyCode": true
         }
