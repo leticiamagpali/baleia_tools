@@ -116,8 +116,8 @@ def get_codeml_results(run_folder, model_type):
     for path in genefolder_paths:
 
         # Extract gene name and model name from folder name
-        gene_name = os.path.basename(path).split("_")[1]
-        model_name = os.path.basename(path).split("_")[0]
+        gene_name = os.path.basename(path).split("_")[0]
+        model_name = os.path.basename(path).split("_")[1] 
 
         # Locate the codeml output file in the gene folder
         outfile_path = None
@@ -183,13 +183,50 @@ def get_codeml_results(run_folder, model_type):
                     raise ValueError(f'No omega values found for gene {gene_name}')  
 
     
-    # 3) Extracting parameters, branch-site models #####
+
+    # 3) Extracting parameters, site models #####
+    #############################################
+        
+        if model_type == "site":
+            lnl_value = np_value = None 
+            current_model = None  # Variable to keep track of the current model being processed
+            positive_sites = []  # Reset positive_sites for the new model
+            folder_results = {}  # Reset folder_results for site models
+            with open(outfile_path, "r") as out:
+                lines_to_read = dropwhile(lambda l: "nssites model" not in l.lower(), out) # Skip lines until "nssites model" is found
+                for line in lines_to_read:
+                    lower_case = line.lower()
+                    if "nssites model" in lower_case:
+                        model_name = line.split(":")[0]
+
+                    if "lnl" in lower_case:
+                        lnl_value, np_value = extract_lnl(line)
+                    elif "bayes empirical bayes (BEB) analysis" in lower_case:
+                        for beb_line in out:
+                            positive_sites.extend(extract_positive_sites(beb_line))
+
+                    current_model = {
+                        "gene": gene_name,
+                        "model": model_name,
+                        "lnl": float(lnl_value) if lnl_value else None,
+                        "np": int(np_value) if np_value else None,
+                        "pss": positive_sites}
+
+                    if current_model is not None:
+                        folder_results.setdefault(gene_name, []).append(current_model)
+                
+            
+
+    # 4) Extracting parameters, branch-site models #####
     ####################################################
         
         if is_branchsite:
             lnl_value = None
             np_value = None
+            # Intilize an empty list to store positively selected sites (PSS) if found
             positive_sites = []
+            # Initialize an empty dictionary to store the site class table data, 
+            # this table is found only in branch-site model output files
             table_data = {}
             with open(outfile_path, "r") as out:
                 lines_to_read = dropwhile(lambda l: "lnl" not in l.lower(), out)
@@ -270,6 +307,8 @@ def write_codeml_results(results_alt, results_null, output_file, model_type):
         if model_type in ["branchsite", "site"]:
             fieldnames = ["gene", "model", "lnl_alt", "lnl_null", "lrt", "np_alt", "np_null", "df", "pvalue", "pss",
                             "fg_omega_2a (prop)", "fg_omega_2b (prop)", "fg_omega_max", "has_pos_sel", "branch_site_omegas"]
+        if model_type == "site":
+            fieldnames = ["gene", "model", "lnl_alt", "lnl_null", "lrt", "np_alt", "np_null", "df", "pvalue", "pss"]
         
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -309,6 +348,7 @@ def write_codeml_results(results_alt, results_null, output_file, model_type):
                     row["fg_omega_2a (prop)"] = f'{data_alt["foreground_w2a"]} ({data_alt["proportion_2a"]})' 
                     row["fg_omega_2b (prop)"] = f'{data_alt["foreground_w2b"]} ({data_alt["proportion_2b"]})'
                     row["fg_omega_max"] = max(data_alt["foreground_w2a"], data_alt["foreground_w2b"])
+                    # Make change here to add a third condition for positive selection: p-value < 0.05, even if omega is not >1 or proportion is not >0
                     row["has_pos_sel"] = "Yes" if (data_alt["foreground_w2a"] > 1 or data_alt["foreground_w2b"] > 1) and (data_alt["proportion_2a"] > 0 or data_alt["proportion_2b"] > 0) else "No"
                     row["branch_site_omegas"] = json.dumps(data_alt["branchsite_omegas"])
                 
@@ -318,6 +358,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract codeml results (lnL, np, omega, PSS) from two models and calculate LRT.")
     parser.add_argument("--alt", help="Path to the first run folder (alternative model).")
     parser.add_argument("--null", help="Path to the second run folder (null model).")
+    parser.add_argument("--site", help="Path to the site model run folder (if applicable).")
     parser.add_argument("--out", help="Path to the output CSV file.")
     parser.add_argument("--m", help="Type of model being analyzed (branch, site or branchsite).")
     args = parser.parse_args()
@@ -325,10 +366,12 @@ if __name__ == "__main__":
     # Define the path to the master folder
     RUN_FOLDER_ALT = args.alt
     RUN_FOLDER_NULL = args.null
+    RUN_FOLDER_SITE = args.site
     OUTPUT_FILE = args.out
     MODEL_TYPE = args.m
 
-    results_alt = get_codeml_results(RUN_FOLDER_ALT, MODEL_TYPE)
-    results_null = get_codeml_results(RUN_FOLDER_NULL, MODEL_TYPE)
+    results_alt = get_codeml_results(RUN_FOLDER_ALT, MODEL_TYPE) if RUN_FOLDER_ALT else None
+    results_null = get_codeml_results(RUN_FOLDER_NULL, MODEL_TYPE) if RUN_FOLDER_NULL else None
+    results_site = get_codeml_results(RUN_FOLDER_SITE, MODEL_TYPE) if RUN_FOLDER_SITE else None
 
-    write_codeml_results(results_alt, results_null, OUTPUT_FILE, MODEL_TYPE)
+    write_codeml_results(results_alt, results_null, OUTPUT_FILE, MODEL_TYPE) if results_alt and results_null else None
