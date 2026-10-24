@@ -28,7 +28,7 @@ from itertools import dropwhile
 # Precompile regex for speed
 
 LNL = re.compile(r"lnL\(ntime:\s*\d+\s+np:\s*(\d+)\):\s*(-?\d+\.\d+)", re.IGNORECASE)
-PSS = re.compile(r"^\s*(\d+)\s+([A-Za-z])\s+([01]\.\d+\**)\s*$", re.IGNORECASE | re.VERBOSE)
+PSS = re.compile(r"^\s*(\d+)\s+([A-Za-z-])\s+([01]\.\d+\*{0,2})", re.IGNORECASE | re.VERBOSE)
 SITE_CLASS = re.compile(r"[\d.]+")
 OMEGA = re.compile(r"(\d+\.\d+)")
 SITE_CLASS_LINE = re.compile(r"site class\s+", re.IGNORECASE)
@@ -45,22 +45,20 @@ SITE_CLASS_LINE = re.compile(r"site class\s+", re.IGNORECASE)
 # (like lnL, np, omeg, positive sites) from the codeml output files
 # by searching for regular expressions and capturing groups.
 
-def extract_lnl(line):
+def extract_lnl(line: str) -> tuple[str | None, str | None]:
     """ Extracts the lnl value and np value from a given line of text. """
     match = LNL.search(line)
     if match:
-        # Returns lnl_value (match group 2), np_value (match group 1)
         return match.group(2), match.group(1)  
-    else:
-        return None, None
+    return None, None
 
 def extract_positive_sites(beb_line):
     """ Extracts positive sites from a given line of text in BEB section. """
     
-    matches = PSS.findall(beb_line)
-    if matches:
-        # Returns a list of formatted strings: site(aa,prob)
-        return [f'{site}({aa},{prob})' for site, aa, prob in matches]
+    match = PSS.search(beb_line)
+    if match:
+        site, aa, prob = match.groups()
+        return [f'{site}({aa},{prob})']
     else:
         return []
 
@@ -100,8 +98,9 @@ def get_codeml_results(run_folder, model_type):
     
     # Check MODEL_TYPE once outside the loop
     # assign boolean flags for model types
-    is_branch_model = model_type == "branch"
+    is_branch = model_type == "branch"
     is_branchsite = model_type == "branchsite"
+    is_site = model_type == "site"
 
     # Loops through each gene folder in the run folder, and creates a list of their paths
     genefolder_paths = [os.path.join(run_folder, d) for d in os.listdir(run_folder) if os.path.isdir(os.path.join(run_folder, d))]
@@ -133,7 +132,7 @@ def get_codeml_results(run_folder, model_type):
     # 2) Extracting parameters, branch models ######
     ################################################
 
-        if is_branch_model:
+        if is_branch:
             # Initialize variables to store extracted values
             lnl_value = np_value = None
             omega_alt = omega_null = None
@@ -183,39 +182,67 @@ def get_codeml_results(run_folder, model_type):
                     raise ValueError(f'No omega values found for gene {gene_name}')  
 
     
-
     # 3) Extracting parameters, site models #####
     #############################################
         
-        if model_type == "site":
-            lnl_value = np_value = None 
-            current_model = None  # Variable to keep track of the current model being processed
-            positive_sites = []  # Reset positive_sites for the new model
-            folder_results = {}  # Reset folder_results for site models
-            with open(outfile_path, "r") as out:
-                lines_to_read = dropwhile(lambda l: "nssites model" not in l.lower(), out) # Skip lines until "nssites model" is found
-                for line in lines_to_read:
-                    lower_case = line.lower()
-                    if "nssites model" in lower_case:
-                        model_name = line.split(":")[0]
-
-                    if "lnl" in lower_case:
-                        lnl_value, np_value = extract_lnl(line)
-                    elif "bayes empirical bayes (BEB) analysis" in lower_case:
-                        for beb_line in out:
-                            positive_sites.extend(extract_positive_sites(beb_line))
-
-                    current_model = {
-                        "gene": gene_name,
-                        "model": model_name,
-                        "lnl": float(lnl_value) if lnl_value else None,
-                        "np": int(np_value) if np_value else None,
-                        "pss": positive_sites}
-
-                    if current_model is not None:
-                        folder_results.setdefault(gene_name, []).append(current_model)
-                
+        if is_site:
+        
+            '''This section extracts results from site model output files.
+            It looks for the model name, lnL value, np value, and positive selection sites (if applicable) in the output file. 
+            The results are stored in a nested dictionary with the following structure: 
+            {gene_name: [{model_name: ..., lnl: ..., np: ..., pss: [...]}]}.'''
             
+            # Initalize current_model to None
+            # which will be used to store results for each model found in the output file
+            current_model: dict[str, object] = {}
+            positive_sites = []
+
+            with open(outfile_path, "r") as out:
+                for line in out:
+                    header = dropwhile(lambda l: "nssites model" not in l.lower(), out)
+                    for line in header:
+                        # Check for model name in the line
+                        # If found, begin a new current_model dictionary to store results for that model
+                        if "nssites model" in line.lower():
+                            model_name = line.strip().split(":")[0]
+                            model_name = model_name.lower()
+                            current_model = {"model": model_name}
+                            break
+
+                    # Fast-forward to lnl section
+                    # Loops through the output file until it finds the line containing "lnl" 
+                    # and extracts the values
+                    for line in out:
+                        if "lnl" in line.lower():
+                            lnl_value, np_value = extract_lnl(line)
+                            if lnl_value and np_value:
+                                current_model["lnl"] = float(lnl_value)
+                                current_model["np"] = int(np_value)
+                            break
+
+                    # This step is only for models that contain BEB sites (i.e., model 2 and model 8)
+                    if "model 2" in model_name or "model 8" in model_name:
+                        beb_lines = dropwhile(lambda l: "bayes empirical bayes (beb) analysis" not in l.lower(), out)
+                        for line in beb_lines:
+                            if PSS.search(line):
+                                positive_sites.extend(extract_positive_sites(line))
+                            if "the grid" in line.lower():
+                                break
+
+                    # Add the list of positive sites to the current_model dictionary
+                        current_model["pss"] = positive_sites
+
+                    if all (i is not None for i in (current_model, lnl_value, np_value)):
+                        folder_results.setdefault(gene_name,[]).append(current_model)   
+                        
+                        # Resetting variables   
+                        current_model = {}
+                        lnl_value = None
+                        np_value = None
+                        positive_sites = []
+
+                        continue
+
 
     # 4) Extracting parameters, branch-site models #####
     ####################################################
@@ -248,7 +275,8 @@ def get_codeml_results(run_folder, model_type):
                     # Check for BEB section to extract positive sites
                     elif "bayes empirical bayes (beb) analysis" in lower_case:
                         for beb_line in out:
-                            positive_sites.extend(extract_positive_sites(beb_line))              
+                            if PSS.search(beb_line):
+                                positive_sites.extend(extract_positive_sites(beb_line))
 
             if lnl_value is None or np_value is None:
                 raise ValueError(f'Could not find lnL or np values for gene {gene_name}')
@@ -285,43 +313,58 @@ def get_codeml_results(run_folder, model_type):
                     "lnl": float(lnl_value),
                     "np": int(np_value)
                 }
+
+    # 5) Callout of results for each run folder #####
+    #################################################
+
     print(f'Extracted results from {run_folder}:')
 
     # Print all lnL and np values
-    for gene_name, data in sorted(folder_results.items()):
-        pss = " ".join(data["pss"]) if "pss" in data else ""
-        pss_str = f', PSS: {pss}' if pss else ""
-        print(f'{gene_name}, lnl: {data["lnl"]}, np: {data["np"]}{pss_str}')
+    if is_branch or is_branchsite:
+        for gene_name, data in sorted(folder_results.items()):
+            pss = " ".join(data["pss"]) if "pss" in data else ""
+            pss_str = f', PSS: {pss}' if pss else ""
+            print(f'{gene_name}, lnl: {data["lnl"]}, np: {data["np"]}{pss_str}')
 
     return folder_results
 
                 
 def write_codeml_results(results_alt, results_null, output_file, model_type):
     """ Merges results from two codeml result dictionaries and writes them to a CSV file."""
+
+    # Check MODEL_TYPE once outside the loop
+    # assign boolean flags for model types
+    is_branch = model_type == "branch"
+    is_branchsite = model_type == "branchsite"
+    is_site = model_type == "site"
     
     # Merge results for calculations and write to CSV
     with open(output_file, mode='w', newline='') as csvfile:
     
-        if  model_type == "branch":
+
+        # Defining the fieldnames for the CSV file based on the model type
+        if  is_branch:
             fieldnames = ["gene", "model", "lnl_alt", "lnl_null", "lrt", "np_alt", "np_null", "df", "pvalue", "omega_alt", "omega_null"]
-        if model_type in ["branchsite", "site"]:
+        if is_branchsite:
             fieldnames = ["gene", "model", "lnl_alt", "lnl_null", "lrt", "np_alt", "np_null", "df", "pvalue", "pss",
                             "fg_omega_2a (prop)", "fg_omega_2b (prop)", "fg_omega_max", "has_pos_sel", "branch_site_omegas"]
-        if model_type == "site":
-            fieldnames = ["gene", "model", "lnl_alt", "lnl_null", "lrt", "np_alt", "np_null", "df", "pvalue", "pss"]
+        if is_site:
+            fieldnames = ["gene", "model", "lnl", "lrt", "np", "df", "pvalue", "pss"]
         
+        # Create a CSV DictWriter object and write the header row
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        
-        for key in sorted(results_alt.keys(), key=str.lower):
-            if key in results_null:
-                # Get corresponding results from both folders
-                data_alt = results_alt[key]
-                data_null = results_null[key]
-                
-                # Calculate LRT and df
-                lrt = 2 * (data_alt["lnl"] - data_null["lnl"])
-                df = data_alt["np"] - data_null["np"]
+
+        if is_branch or is_branchsite:
+            for key in sorted(results_alt.keys(), key=str.lower):
+                if key in results_null:
+                    # Get corresponding results from both folders
+                    data_alt = results_alt[key]
+                    data_null = results_null[key]
+
+                    # Calculate LRT and df
+                    lrt = 2 * (data_alt["lnl"] - data_null["lnl"])
+                    df = data_alt["np"] - data_null["np"]
 
                 # Calculate the p-value using the Chi-squared distribution
                 p_value = chi2.sf(lrt, df)
@@ -353,6 +396,43 @@ def write_codeml_results(results_alt, results_null, output_file, model_type):
                     row["branch_site_omegas"] = json.dumps(data_alt["branchsite_omegas"])
                 
                 writer.writerow(row)
+
+            if is_site and results_site is not None:
+                for gene_key in sorted(results_site.keys(), key=str.lower):
+                      results_model1 = gene_key[0]
+                      results_model2 = gene_key[1]
+                      results_model7 = gene_key[2]
+                      results_model8 = gene_key[3]
+                      lrt1 = 2 * (results_model1["lnl"] - results_model2["lnl"])
+                      lrt2 = 2 * (results_model7["lnl"] - results_model8["lnl"])
+                      df1 = results_model1["np"] - results_model2["np"]
+                      df2 = results_model7["np"] - results_model8["np"]
+                      p_value1 = chi2.sf(lrt1, df1)
+                      p_value2 = chi2.sf(lrt2, df2)
+                      row1 = {
+                          "gene": results_model2["gene"],
+                          "model": results_model2["model"],
+                          "lnl": results_model2["lnl"],
+                          "lrt": lrt1,
+                          "np": results_model2["np"],
+                          "df": df1,
+                          "pvalue": p_value1,
+                          "pss": " ".join(results_model2["pss"])
+                      }
+
+                      row2 = {
+                          "gene": results_model8["gene"],
+                          "model": results_model8["model"],
+                          "lnl": results_model8["lnl"],
+                          "lrt": lrt2,
+                          "np": results_model8["np"],
+                          "df": df2,
+                          "pvalue": p_value2,
+                          "pss": " ".join(results_model8["pss"])}
+                
+                writer.writerow(row1)
+                writer.writerow(row2)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract codeml results (lnL, np, omega, PSS) from two models and calculate LRT.")

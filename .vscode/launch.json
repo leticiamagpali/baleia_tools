@@ -8,10 +8,9 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--alt", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/leaf/H3_nbhf/branch_H3",
-                "--null", "../chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/M0",
+                "--site", "/Users/letixa/Library/CloudStorage/GoogleDrive-leticiamagpali@gmail.com/My Drive/phd_leticia/chapter2_acoustic_genes/evol_models/codeml/dataset30/cml_runs/genetree/site_models"
                 "--out", "test_output.csv",
-                "--m", "branch"
+                "--m", "site"
             ],
             "justMyCode": true
         }
